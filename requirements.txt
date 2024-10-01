@@ -3,3 +3,4 @@ bytewax
 loguru
 black
 isort
+click
