@@ -1,0 +1,58 @@
+services:
+  fs-kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: fs-kafka
+    hostname: fs-kafka
+    user: root
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_LISTENERS: "INTERNAL://fs-kafka:29092,CONTROLLER://fs-kafka:29093,EXTERNAL://0.0.0.0:9092"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://fs-kafka:29092,EXTERNAL://localhost:9092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@fs-kafka:29093"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: "ciWo7IWazngRchmPES6q5A=="
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+    volumes:
+      - ./infra/data-kafka:/var/lib/kafka/data:rw
+    networks:
+      - fs-network
+
+  # creates kafka topic 'fs-features-v1'
+  init-kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      fs-kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server fs-kafka:29092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server fs-kafka:29092 --create --if-not-exists --topic test-topic --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server fs-kafka:29092 --list
+      "
+    networks:
+      - fs-network
+    init: true
+
+networks:
+  fs-network:
+    name: fs-network

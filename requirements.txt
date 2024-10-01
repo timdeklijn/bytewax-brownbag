@@ -1,0 +1,5 @@
+confluent-kafka
+bytewax
+loguru
+black
+isort

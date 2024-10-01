@@ -1,0 +1,11 @@
+version: "3"
+
+tasks:
+  install:
+    cmds:
+      - uv venv -p 3.11
+      - uv pip install -r requirements.txt
+
+  exec:
+    cmds:
+      - docker exec --workdir /opt/kafka/bin/ -it bytewax-brownbag-kafka-1 sh
