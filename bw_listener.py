@@ -2,22 +2,13 @@ import json
 
 import bytewax.operators as op
 from bytewax import operators as op
-from bytewax.connectors.kafka import (KafkaError, KafkaSource,
-                                      KafkaSourceMessage)
+from bytewax.connectors.kafka import KafkaError, KafkaSource, KafkaSourceMessage
 from bytewax.connectors.stdio import StdOutSink
 from bytewax.dataflow import Dataflow, Stream
 from confluent_kafka import OFFSET_BEGINNING
 from loguru import logger
 
-BROKERS = ["localhost:9092"]
-IN_TOPICS = ["test-topic"]
-
-kafka_src = KafkaSource(
-    brokers=BROKERS,
-    topics=IN_TOPICS,
-    starting_offset=OFFSET_BEGINNING,
-    tail=True,
-)
+from brownbag import KAFKA_SRC
 
 
 def decode(
@@ -43,7 +34,7 @@ def log_it(msg: dict) -> dict:
 
 
 flow = Dataflow("kafka_in_out")
-stream = op.input("inp", flow, kafka_src)
+stream = op.input("inp", flow, KAFKA_SRC)
 output_stream = op.map("log_the_message", stream, decode)
 logged_stream = op.map("logger", output_stream, log_it)
 op.output("out", logged_stream, StdOutSink())

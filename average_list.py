@@ -9,54 +9,12 @@ from bytewax.dataflow import Dataflow, Stream
 from confluent_kafka import OFFSET_BEGINNING
 from loguru import logger
 
-BROKERS = ["localhost:9092"]
-TOPICS = ["test-topic"]
-
-kafka_src = KafkaSource(
-    brokers=BROKERS,
-    topics=TOPICS,
-    starting_offset=OFFSET_BEGINNING,
-    tail=True,
-)
-
-
-# TODO: move this into some shared file
-def filter_on_key(
-    msg: (
-        KafkaSourceMessage[bytes | None, bytes | None]
-        | KafkaError[bytes | None, bytes | None]
-    )
-) -> bool:
-    """filter on key"""
-    if isinstance(msg, KafkaError):
-        logger.error(f"Error: {msg}")
-        return False
-    if msg.value is None:
-        logger.error(f"Error: value is None")
-        return False
-    if msg.key != b"list":
-        return False
-    return True
-
-
-# TODO: move this into some shared file
-def decode(
-    msg: (
-        KafkaSourceMessage[bytes | None, bytes | None]
-        | KafkaError[bytes | None, bytes | None]
-    )
-) -> dict:
-    if isinstance(msg, KafkaError):
-        logger.error(f"Error: {msg}")
-        return {}
-    if msg.value is None:
-        logger.error(f"Error: value is None")
-        return {}
-    decoded_message = msg.value.decode("utf-8")
-    return json.loads(decoded_message)
+from brownbag import BROKERS, KAFKA_SINK, KAFKA_SRC, TOPIC
+from brownbag.utils import decode, filter_on_key
 
 
 def process(msg: dict) -> float:
+    """calculate the average of the list in the input dict with key 'value'"""
     logger.info(f"list: {msg['value']}")
     avg = float(sum(msg["value"]) / len(msg["value"]))
     logger.info(f"avg: {avg}")
@@ -71,9 +29,9 @@ def to_kafka(msg: float) -> KafkaSinkMessage:
 
 
 flow = Dataflow("list_averager")
-stream = op.input("inp", flow, kafka_src)
-filtered = op.filter("filter_on_key", stream, filter_on_key)
+stream = op.input("inp", flow, KAFKA_SRC)
+filtered = op.filter("filter_on_key", stream, lambda x: filter_on_key(x, b"list"))
 output_stream = op.map("log_the_message", filtered, decode)
 processed_stream = op.map("logger", output_stream, process)
 kafka_stream = op.map("to_kafka", processed_stream, to_kafka)
-op.output("out", kafka_stream, KafkaSink(brokers=BROKERS, topic=TOPICS[0]))
+op.output("out", kafka_stream, KAFKA_SINK)

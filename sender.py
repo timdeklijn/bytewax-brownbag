@@ -1,11 +1,16 @@
+""" sender.py
+
+Simple script that will send data to a kafka topic.
+"""
+
 import json
 
 import click
 from confluent_kafka import Producer
 from loguru import logger
 
-CONFIG = {"bootstrap.servers": "localhost:9092"}
-TOPIC = "test-topic"
+from brownbag import CONFIG, TOPIC
+
 OPTIONS = ["simple_data", "list"]
 
 
