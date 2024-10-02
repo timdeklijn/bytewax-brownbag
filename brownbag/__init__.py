@@ -1,3 +1,5 @@
+import datetime
+
 from bytewax.connectors.kafka import KafkaSink, KafkaSource
 from confluent_kafka import OFFSET_BEGINNING
 
@@ -14,3 +16,5 @@ KAFKA_SRC = KafkaSource(
     starting_offset=OFFSET_BEGINNING,
     tail=True,
 )
+
+ALIGN_TO = datetime.datetime(2022, 1, 1, tzinfo=datetime.timezone.utc)

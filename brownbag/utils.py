@@ -1,6 +1,8 @@
+import datetime
 import json
 
-from bytewax.connectors.kafka import KafkaError, KafkaSourceMessage
+from bytewax.connectors.kafka import (KafkaError, KafkaSinkMessage,
+                                      KafkaSourceMessage)
 from loguru import logger
 
 
@@ -18,7 +20,7 @@ def filter_on_key(
     if msg.value is None:
         logger.error(f"Error: value is None")
         return False
-    if msg.key != b"list":
+    if msg.key != key:
         return False
     return True
 
@@ -38,3 +40,14 @@ def decode(
         return {}
     decoded_message = msg.value.decode("utf-8")
     return json.loads(decoded_message)
+
+
+def get_time(x: dict) -> datetime.datetime:
+    return x["time"]
+
+
+def to_kafka(msg) -> KafkaSinkMessage:
+    """Convert a feature event (bytes) to a KafkaSinkMessage"""
+    return KafkaSinkMessage(
+        key="series_out", value=json.dumps({"name": "series_running", "value": msg})
+    )

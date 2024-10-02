@@ -4,3 +4,4 @@ loguru
 black
 isort
 click
+pytest
